@@ -9,6 +9,8 @@ var MAXLOGGERLEN = 20;
 var RETRY_TIMEOUT = 5;
 var UPDATE_CHECK_INTERVAL = 15*60; /* Check for updates every 15' at most */
 var WINDOW_UPDATE_INTERVAL = 15; /* Update window list every 15" at most */
+var DECORATION_WIDTH_GUESS = 0; /* Approximately outerWidth-innerWidth */
+var DECORATION_HEIGHT_GUESS = 33; /* Approximately outerHeight-innerHeight */
 /* String to copy to the clipboard if it should be empty */
 var DUMMY_EMPTYSTRING = "%";
 
@@ -491,8 +493,17 @@ function websocketMessage(evt) {
         break;
     case 'X': /* Ask to open a crouton window */
         display = payload
-        match = display.match(/^:([0-9]+)$/)
+        match = display.match(/^:([0-9]+)( [0-9]+)?( [0-9]+)?$/)
         displaynum = match ? match[1] : null
+        width = len(match) > 2 ? match[2] : -1
+        height = len(match) > 3 ? match[3] : width
+        var sizing = {}
+        if (width > 0) {
+            sizing += {'width': width + DECORATION_WIDTH_GUESS};
+        }
+        if (height > 0) {
+            sizing += {'height': height + DECORATION_WIDTH_GUESS};
+        }
         if (!displaynum) {
             /* Minimize all kiwi windows  */
             var disps = Object.keys(kiwi_win_);
@@ -520,7 +531,8 @@ function websocketMessage(evt) {
                     !kiwi_win_[display].window.closing)) {
             /* focus/full screen an existing window */
             var winid = kiwi_win_[display].id;
-            chrome.windows.update(winid, {focused: true});
+            var update = {focused: true};
+            chrome.windows.update(winid, {focused: true} + sizing);
             chrome.windows.get(winid, function(win) {
                 if (win.state == "maximized")
                     chrome.windows.update(winid, {'state': 'fullscreen'},
@@ -539,7 +551,9 @@ function websocketMessage(evt) {
                                            "&debug=" + (debug_ ? 1 : 0) +
                                            "&hidpi=" + (hidpi_ ? 1 : 0) +
                                            "&title=" + encodeURIComponent(name),
-                                    'type': "popup" },
+                                           "&fullscreen=" + (width == -1),
+                                    'type': "popup" }
+                                    + sizing,
                                   function(newwin) {
                                       kiwi_win_[display].id = newwin.id;
                                       focus_win_ = display;
