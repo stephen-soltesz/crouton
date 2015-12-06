@@ -1,5 +1,5 @@
 #!/bin/sh -e
-# Copyright (c) 2014 The crouton Authors. All rights reserved.
+# Copyright (c) 2015 The crouton Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -43,6 +43,10 @@ else
 fi
 
 # Run crouton-specific commands:
+
+# Show chroot specifics for troubleshooting
+croutonversion 1>&2
+
 if [ -z "$XMETHOD" ]; then
     if [ -f '/etc/crouton/xmethod' ]; then
         read -r XMETHOD _ < /etc/crouton/xmethod
@@ -52,6 +56,8 @@ if [ -z "$XMETHOD" ]; then
         exit 1
     fi
 fi
+xmethodtype="${XMETHOD%%-*}"
+xmethodargs="${XMETHOD#*-}"
 
 # Record the name of the chroot in the root window properties
 if [ -f '/etc/crouton/name' ] && hash xprop 2>/dev/null; then
@@ -70,7 +76,7 @@ if hash croutonclip 2>/dev/null; then
 fi
 
 # Pass through the host cursor and correct mousewheels on xephyr
-if [ "$XMETHOD" = 'xephyr' ]; then
+if [ "$xmethodtype" = 'xephyr' ]; then
     host-x11 croutoncursor "$DISPLAY" &
     if [ -z "$CROUTON_WHEEL_PARAMS" -a -r "$HOME/.croutonwheel" ]; then
         CROUTON_WHEEL_PARAMS="`head -n1 "$HOME/.croutonwheel"`"
@@ -81,12 +87,17 @@ fi
 # Launch system-wide trigger daemon
 croutontriggerd &
 
-# Input-related stuff is not needed for kiwi
-if [ "$XMETHOD" != "xiwi" ]; then
+
+# Apply the Chromebook keyboard map. Not needed for non-Freon xiwi.
+if [ "$xmethodtype" != 'xiwi' -o ! -f "/sys/class/tty/tty0/active" ]; then
     # Apply the Chromebook keyboard map if installed.
     if [ -f '/usr/share/X11/xkb/compat/chromebook' ]; then
         setxkbmap -model chromebook
     fi
+fi
+
+# Input-related stuff is not needed for kiwi
+if [ "$xmethodtype" != "xiwi" ]; then
 
     # Launch X-server-local key binding daemon
     xbindkeys -fg /etc/crouton/xbindkeysrc.scm
@@ -121,7 +132,7 @@ if [ "$XMETHOD" != "xiwi" ]; then
 fi
 
 # Crouton-in-a-tab: Start fbserver and launch display
-if [ "$XMETHOD" = 'xiwi' ]; then
+if [ "$xmethodtype" = 'xiwi' ]; then
     # The extension sends evdev key codes: fix the keyboard mapping rules
     setxkbmap -rules evdev
     # Reapply xkb map: This fixes autorepeat mask in "xset q"

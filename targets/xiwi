@@ -1,12 +1,13 @@
 #!/bin/sh -e
-# Copyright (c) 2014 The crouton Authors. All rights reserved.
+# Copyright (c) 2015 The crouton Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 REQUIRES='audio extension'
 PROVIDES='x11'
 DESCRIPTION='X.org X11 backend running unaccelerated in a Chromium OS window.'
+HOSTBIN='startxiwi'
 CHROOTBIN='croutoncycle croutonfindnacl croutontriggerd croutonxinitrc-wrapper setres xinit xiwi'
-CHROOTETC='xbindkeysrc.scm xorg-dummy.conf xserverrc xserverrc-xiwi xserverrc-local.example'
+CHROOTETC='xbindkeysrc.scm xiwi.conf xorg-dummy.conf xserverrc xserverrc-xiwi xserverrc-local.example'
 . "${TARGETSDIR:="$PWD"}/common"
 
 ### Append to prepare.sh:
@@ -27,14 +28,13 @@ if [ "${DISTROAKA:-"$DISTRO"}" = 'debian' ]; then
     apt-mark unhold xserver-xorg-video-dummy$ltspackages || true 2>/dev/null
 fi
 
-install xorg xserver-xorg-video-dummy$ltspackages ratpoison
+install xorg xserver-xorg-video-dummy$ltspackages
+install --minimal i3
 
 # Compile croutonfbserver
 compile fbserver '-lX11 -lXfixes -lXdamage -lXext -lXtst' \
     libx11-dev libxfixes-dev libxdamage-dev libxext-dev libxtst-dev
-
-# Make croutonfbserver setuid root. See issue #1411; this is way insecure
-chmod u+s /usr/local/bin/croutonfbserver
+compile findnacld ''
 
 ln -sf /etc/crouton/xorg-dummy.conf /etc/X11/
 
@@ -402,9 +402,9 @@ Once in a crouton window, press fullscreen or the "switch window" key to switch
 back to Chromium OS.
 
 You can launch individual apps in crouton windows by using the "xiwi" command
-in the chroot shell. Wrap that command with enter-chroot to launch directly
-from the host shell. Use the enter-chroot parameter -b to run in the background.
-Example: sudo enter-chroot -b xiwi xterm
+in the chroot shell. Use startxiwi to launch directly from the host shell.
+Use the startxiwi parameter -b to run in the background.
+Example: sudo startxiwi -b xterm
 '
 
 ### append x11-common
