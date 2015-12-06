@@ -542,7 +542,7 @@ public:
                 return PP_TRUE;  /* Ignore key */
             }
 
-            if (jskeycode >= 65 && jskeycode <= 90) {  /* letter */
+            if ((jskeycode >= 65 && jskeycode <= 90) || jskeycode == 219 ) {  /* letter + [ */
                 /* Search is active, send Super_L if needed */
                 if (down && (search_state_ == kSearchUpFirst ||
                              search_state_ == kSearchUp)) {
